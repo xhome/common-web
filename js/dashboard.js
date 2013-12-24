@@ -33,6 +33,7 @@
  *                     text: '系统管理',
  *                     leaf: true,
  *                     iconCls: 'icon-test', // 重置默认图标
+ *                     showScript: 'xauth/js/user/user.js', // 显示面板所需加载的javascript
  *                     showClass: 'Ext.Panel', // 显示面板类
  *                     showConfig: { // 显示面板配置
  *                         id: 'abcdef',
@@ -143,6 +144,9 @@ Ext.define('XHome.Dashboard.Navigation', {
      */
     createShowPanel: function (record) {
         var node = record.raw;
+        if (node.showScript) {
+            Ext.Loader.loadScript(node.showScript);
+        }
         var navigation = this;
         var showConfig = {
             /**

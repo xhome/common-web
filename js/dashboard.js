@@ -35,7 +35,7 @@
  *                     leaf: true,
  *                     iconCls: 'icon-test', // 重置默认图标
  *                     showScript: 'xauth/js/user/user.js', // 显示面板所需加载的javascript
- *                     showClass: 'Ext.Panel', // 显示面板类
+ *                     showClass: 'Ext.panel.Panel', // 显示面板类
  *                     showConfig: { // 显示面板配置
  *                         id: 'sys_config',
  *                         html: 'System Config',
@@ -48,7 +48,7 @@
  *                         id: 'mxauth_role',
  *                         text: '角色管理',
  *                         leaf: true,
- *                         showClass: 'Ext.Panel',
+ *                         showClass: 'Ext.panel.Panel',
  *                         showConfig: {
  *                             html: 'Role Manage'
  *                         }
@@ -63,11 +63,11 @@
 /**
  * Logo面板
  *
- * {@link Ext.Panel}
+ * {@link Ext.panel.Panel}
  */
 Ext.define('XHome.Dashboard.Logo', {
     id: 'xhome_dashboard_logo',
-    extend: 'Ext.Panel',
+    extend: 'Ext.panel.Panel',
 
     /**
      * @cfg {String} region
@@ -318,16 +318,30 @@ Ext.define('XHome.Dashboard.Workspace', {
      * 默认不自动销毁被移除的显示面板
      */
     autoDestroy: false,
+
+    /**
+     * @cfg {Object} tabBar
+     * 默认设置tabBaar padding: 0px
+     */
+    tabBar: {
+        baseCls: 'padding: 0px',
+    },
+
+    /**
+     * @cfg {Object} defaults
+     * 显示面板子元素默认属性
+     */
+    defaults: {y: -1},
 });
 
 /**
  * 版权信息面板
  *
- * {@link Ext.Panel}
+ * {@link Ext.panel.Panel}
  */
 Ext.define('XHome.Dashboard.Copyright', {
     id: 'xhome_dashboard_copyright',
-    extend: 'Ext.Panel',
+    extend: 'Ext.panel.Panel',
 
     /**
      * @cfg {String} region

@@ -30,24 +30,27 @@
  *             title: 'Navigation',
  *             root: {
  *                 children: [{
- *                     text: '系统管理',
+ *                     id: 'msys',
+ *                     text: '系统配置',
  *                     leaf: true,
  *                     iconCls: 'icon-test', // 重置默认图标
  *                     showScript: 'xauth/js/user/user.js', // 显示面板所需加载的javascript
  *                     showClass: 'Ext.Panel', // 显示面板类
  *                     showConfig: { // 显示面板配置
- *                         id: 'abcdef',
- *                         html: 'Good Job',
+ *                         id: 'sys_config',
+ *                         html: 'System Config',
  *                     }
  *                 }, {
- *                     text: '用户管理',
+ *                     id: 'mxauth',
+ *                     text: '认证管理',
  *                     leaf: false,
  *                     children: [{
+ *                         id: 'mxauth_role',
  *                         text: '角色管理',
  *                         leaf: true,
  *                         showClass: 'Ext.Panel',
  *                         showConfig: {
- *                             html: 'Hello World'
+ *                             html: 'Role Manage'
  *                         }
  *                     }]
  *                 }]
@@ -87,6 +90,22 @@ Ext.define('XHome.Dashboard.Logo', {
 
 /**
  * 导航菜单面板
+ *
+ * 节点命令规则:
+ * 各个节点都应该有id属性，
+ * 且字节点的id应该以其所有父节点id以 _ 为间隔组合起来的字符窜开头。
+ * 示例：
+ * root : {
+ *     children: [{
+ *         id: 'dashboard',
+ *         text: 'Dashboard',
+ *         children: [{
+ *             id: 'dashboard_main',
+ *             text: 'Main',
+ *             leaf: true
+ *         }]
+ *     }]
+ * }
  *
  * {@link Ext.tree.Panel}
  */
@@ -141,55 +160,76 @@ Ext.define('XHome.Dashboard.Navigation', {
      * @cfg {Function} createShowPanel
      * 点击菜单面板后，创建对应的显示面板
      * @param record {Object} 菜单项信息
+     * @param callback {Function} 显示面板创建成功后的回调函数，通过回调函数传回创建的显示面板对象
      */
-    createShowPanel: function (record) {
+    createShowPanel: function(record, callback) {
         var node = record.raw;
-        if (node.showScript) {
-            Ext.Loader.loadScript(node.showScript);
-        }
         var navigation = this;
-        var showConfig = {
-            /**
-             * @cfg {String} title
-             * 内容面板标题默认与菜单标题一致
-             */
-            title: node.text,
-
-            /**
-             * @cfg {Boolean} closable
-             * 内容面板默认允许关闭，但关闭仅是隐藏，并不对其进行销毁
-             */
-            closable: true,
-
-            /**
-             * @cfg {Boolean} border
-             * 内容面板默认无边框
-             */
-            border: false,
-        };
-        Ext.apply(showConfig, node['showConfig']);
-        var showPanel = Ext.create(node.showClass, showConfig);
-        // 选中内容面板后，同步将对应的导航菜单项选中
-        showPanel.addListener('show',
-            function(panel) {
-                var selection = navigation.getSelectionModel();
-                if (!selection.isSelected(record)) {
-                    // 如果该节点不可见，还需要将其父节点依次展开
-                    if (!record.isVisible()) {
-                        var parentNode = record.parentNode;
-                        while (parentNode != null) {
-                            if (!parentNode.isExpanded()) {
-                                parentNode.expand();
+        var doCreateShowPanel = function() {
+            var showConfig = {
+                /**
+                 * @cfg {String} title
+                 * 内容面板标题默认与菜单标题一致
+                 */
+                title: node.text,
+    
+                /**
+                 * @cfg {Boolean} closable
+                 * 内容面板默认允许关闭，但关闭仅是隐藏，并不对其进行销毁
+                 */
+                closable: true,
+    
+                /**
+                 * @cfg {Boolean} border
+                 * 内容面板默认无边框
+                 */
+                border: false,
+            };
+            Ext.apply(showConfig, node['showConfig']);
+            var showPanel = Ext.create(node.showClass, showConfig);
+            // 选中内容面板后，同步将对应的导航菜单项选中
+            showPanel.addListener('show',
+                function(panel) {
+                    var selection = navigation.getSelectionModel();
+                    if (!selection.isSelected(record)) {
+                        // 如果该节点不可见，还需要将其父节点依次展开
+                        if (!record.isVisible()) {
+                            var parentNode = record.parentNode;
+                            while (parentNode != null) {
+                                if (!parentNode.isExpanded()) {
+                                    parentNode.expand();
+                                }
+                                parentNode = parentNode.parentNode;
                             }
-                            parentNode = parentNode.parentNode;
                         }
+                        selection.select(record);
                     }
-                    selection.select(record);
                 }
+            );
+            navigation.workspace.add(showPanel);
+            return showPanel;
+        };
+        if (node.showScript) {
+            Ext.Loader.loadScript({
+                url: node.showScript,
+                onLoad: function() {
+                    callback(doCreateShowPanel());
+                }
+            });
+        } else {
+            callback(doCreateShowPanel());
+        }
+    },
+
+    /**
+     * 显示指定路径的节点
+     */
+    showPath: function(path) {
+        this.selectPath(path, '', '/', function(treeNode, node) {
+            if (treeNode && node) {
+                this.fireEvent('itemclick', this, node);
             }
-        );
-        this.workspace.add(showPanel);
-        return showPanel;
+        });
     },
 
     /**
@@ -202,7 +242,7 @@ Ext.define('XHome.Dashboard.Navigation', {
          * 如果是叶子节点，则将菜单对应的内容面板在工作面板上显示出来，
          * 否则展开或折叠该节点
          */
-        itemclick: function (view, record, item) {
+        itemclick: function(view, record) {
             if (record.isLeaf()) {
                 // 查找工作面板对象
                 var workspace = null;
@@ -221,20 +261,31 @@ Ext.define('XHome.Dashboard.Navigation', {
                 // 如果未找到内容面板，则新建并将其添加至工作面板上，然后显示；
                 // 否则直接显示内容面板
                 var node = record.raw;
+                var callback = function(panel) {
+                    node.showPanel = panel;
+                    node.showPanel.show();
+                };
                 if (!node.showPanel) {
-                    node.showPanel = this.createShowPanel(record);
+                    this.createShowPanel(record, callback);
                 } else if (!workspace.getComponent(node.showPanel.id)) {
                     if (workspace.autoDestroy) {
-                        node.showPanel = this.createShowPanel(record);
+                        this.createShowPanel(record, callback);
                     } else {
                         workspace.add(node.showPanel);
+                        node.showPanel.show();
                     }
+                } else {
+                    node.showPanel.show();
                 }
-                node.showPanel.show();
             } else if(record.isExpanded()) {
                 view.collapse(record);
             } else {
                 view.expand(record);
+            }
+        },
+        select: function(view, record, index) {
+            if (record.isLeaf()) {
+                window.location.hash = record.raw.id;
             }
         }
     }
@@ -326,7 +377,7 @@ Ext.define('XHome.Dashboard', {
     id: 'xhome_dashboard',
     extend: 'Ext.container.Viewport',
     layout: 'border',
-    constructor: function (config) {
+    constructor: function(config) {
         var __config = {
             /**
              * @cfg {String} logoClass
@@ -386,5 +437,23 @@ Ext.define('XHome.Dashboard', {
             Ext.create(__config.copyrightClass, __config.copyrightConfig),
         ];
         this.callParent([config]);
+
+        // 找到指定的节点并显示
+        var hash = window.location.hash;
+        if (hash) {
+            hash = hash.substr(1);
+            var ids = hash.split('_');
+            var nid = ids[0];
+            var node = navigation.getRootNode().findChild('id', nid);
+            for (var i = 1; i < ids.length && node; i++) {
+                nid = nid + '_' + ids[i];
+                node.expand();
+                node = node.findChild('id', nid);
+            }
+            if (node) {
+                navigation.fireEvent('itemclick', this, node);
+                navigation.getSelectionModel().select(node);
+            }
+        }
     },
 });

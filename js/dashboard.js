@@ -68,6 +68,7 @@
 Ext.define('XHome.Dashboard.Logo', {
     id: 'xhome_dashboard_logo',
     extend: 'Ext.panel.Panel',
+    alias: 'widget.xdlogo',
 
     /**
      * @cfg {String} region
@@ -112,6 +113,7 @@ Ext.define('XHome.Dashboard.Logo', {
 Ext.define('XHome.Dashboard.Navigation', {
     id: 'xhome_dashboard_navigation',
     extend: 'Ext.tree.Panel',
+    alias: 'widget.xdnav',
 
     /**
      * @cfg {String} region
@@ -303,6 +305,7 @@ Ext.define('XHome.Dashboard.Navigation', {
 Ext.define('XHome.Dashboard.Workspace', {
     id: 'xhome_dashboard_workspace',
     extend: 'Ext.tab.Panel',
+    alias: 'widget.xdworkspace',
 
     /**
      * @cfg {String} region
@@ -349,7 +352,10 @@ Ext.define('XHome.Dashboard.Workspace', {
  * {@link Ext.panel.Panel}
  */
 Ext.define('XHome.Dashboard.SearchPanel', {
-    extend: 'Ext.panel.Panel',
+    extend: 'Ext.form.Panel',
+    alias: 'widget.xdspanel',
+
+    formBind: true,
 
     /**
      * @cfg {Boolean} frame
@@ -399,6 +405,28 @@ Ext.define('XHome.Dashboard.SearchPanel', {
      * 布局位置
      */
     region: 'north',
+
+    /**
+     * @cfg {Function} doSearch
+     * 执行条件数据查询
+     */
+    doSearch: function() {
+        var parent = this.findParentByType('xdwpanel');
+        if (parent) {
+            var grid = parent.child('xdgrid');
+            if (grid) {
+                grid.store.reload();
+            }
+        }
+    },
+
+    /**
+     * @cfg {Function} getSearchCondition
+     * 获取查询条件
+     */
+    getSearchCondition: function() {
+        return {};
+    },
 });
 
 /**
@@ -408,6 +436,7 @@ Ext.define('XHome.Dashboard.SearchPanel', {
  */
 Ext.define('XHome.Dashboard.EditorGridPanel', {
     extend: 'Ext.grid.Panel',
+    alias: 'widget.xdgrid',
 
     /**
      * @cfg {Boolean} autoScroll
@@ -457,9 +486,44 @@ Ext.define('XHome.Dashboard.EditorGridPanel', {
                 store: config.store,
             });
             config.bbar = [pbar];
+
+            var grid = this;
+            config.store.on({
+                beforeload: function(store, operation, eOpts) {
+                    var parent = grid.findParentByType('xdwpanel');
+                    if (parent) {
+                        var spanel = parent.child('xdspanel');
+                        if (spanel) {
+                            var params = spanel.getSearchCondition();
+                            if (!operation.params) {
+                                operation.params = params;
+                            } else {
+                                Ext.apply(operation.params, params);
+                            }
+                        }
+                    }
+                },
+            });
         }
         this.callParent([config]);
     },
+});
+
+/**
+ * 工作面板
+ * 一般需要包含{@link XHome.Dashboard.SearchPanel}和{@link XHome.Dashboard.EditorGridPanel}
+ *
+ * {@link Ext.panel.Panel}
+ */
+Ext.define('XHome.Dashboard.WorkPanel', {
+    extend: 'Ext.panel.Panel',
+    alias: 'widget.xdwpanel',
+
+    /**
+     * @cfg {String} layout
+     * 默认使用border布局
+     */
+    layout:'border',
 });
 
 /**
@@ -470,6 +534,7 @@ Ext.define('XHome.Dashboard.EditorGridPanel', {
 Ext.define('XHome.Dashboard.Copyright', {
     id: 'xhome_dashboard_copyright',
     extend: 'Ext.panel.Panel',
+    alias: 'widget.xdcopyright',
 
     /**
      * @cfg {String} region
@@ -759,7 +824,6 @@ Ext.define('XHome.data.JsonStore', {
             wrapperBeforeload: true,
             wrapperLoad: true,
             allowAbort: true,
-            pageSize: 1,
         }, config);
 
         var listeners = Ext.apply({}, config.listeners);

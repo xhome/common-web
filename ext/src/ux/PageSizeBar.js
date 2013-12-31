@@ -22,7 +22,7 @@ Ext.define('Ext.ux.PageSizeBar', {
         var idx = pbar.items.indexOf(pbar.child('#refresh'));
         var store = Ext.create('Ext.data.ArrayStore', {
                 fields: ['value'],
-                data: [[10], [20], [30]],
+                data: [[10], [15], [20], [25], [30]],
                 queryMode: 'local',
         });
         var combo = Ext.create('Ext.form.field.ComboBox', {

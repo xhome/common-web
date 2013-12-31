@@ -207,6 +207,7 @@ Ext.define('XHome.Dashboard.Navigation', {
                 }
             );
             navigation.workspace.add(showPanel);
+            navigation.workspace.setActiveTab(showPanel);
             return showPanel;
         };
         if (node.showScript) {
@@ -253,7 +254,7 @@ Ext.define('XHome.Dashboard.Navigation', {
                 } else if (type == 'object') {
                     workspace = this.workspace;
                 } else {
-                    Ext.Msg.alert('Error', 'Workspace not find!');
+                    XHome.Msg.error('Workspace not find!');
                     return;
                 }
 
@@ -271,8 +272,10 @@ Ext.define('XHome.Dashboard.Navigation', {
                     if (workspace.autoDestroy) {
                         this.createShowPanel(record, callback);
                     } else {
+                        workspace.show();
                         workspace.add(node.showPanel);
                         node.showPanel.show();
+                        workspace.setActiveTab(node.showPanel.id);
                     }
                 } else {
                     node.showPanel.show();
@@ -320,18 +323,143 @@ Ext.define('XHome.Dashboard.Workspace', {
     autoDestroy: false,
 
     /**
-     * @cfg {Object} tabBar
-     * 默认设置tabBaar padding: 0px
+     * @cfg {Boolean} autoScroll
+     * 自动显示滚动条
      */
-    tabBar: {
-        baseCls: 'padding: 0px',
+    autoScroll: true,
+
+    /**
+     * @cfg {Object} listeners
+     * 事件监听配置
+     */
+    listeners: {
+        /**
+         * 监听tab移除事件，只有一个tab时不移除
+         * 避免全部移除后新打开的tab无法显示
+         */
+        beforeremove: function(workspace, component) {
+            return workspace.items.length > 1;
+        }
+    }
+});
+
+/**
+ * 查询面板
+ *
+ * {@link Ext.panel.Panel}
+ */
+Ext.define('XHome.Dashboard.SearchPanel', {
+    extend: 'Ext.panel.Panel',
+
+    /**
+     * @cfg {Boolean} frame
+     * 背景样式
+     */
+    frame: true,
+
+    /**
+     * @cfg {Boolean} border
+     * 不显示边框
+     */
+    border: false,
+
+    /**
+     * @cfg {Object} style
+     * 默认样式
+     */
+    style: {
+        borderStyle: 'none',
+        borderRadius: 0,
+        borderWidth: 0,
+    },
+
+    /**
+     * @cfg {Object} layout
+     * 布局配置
+     */
+    layout: {
+        type: 'table',
+        tableAttrs: {
+            style: {
+                margin: 'auto',
+            }
+        },
     },
 
     /**
      * @cfg {Object} defaults
-     * 显示面板子元素默认属性
+     * 所有子元素默认样式
      */
-    defaults: {y: -1},
+    defaults: {
+        margin: 'auto',
+    },
+
+    /**
+     * @cfg {String} region
+     * 布局位置
+     */
+    region: 'north',
+});
+
+/**
+ * 可编辑表格
+ *
+ * {@link Ext.grid.Panel}
+ */
+Ext.define('XHome.Dashboard.EditorGridPanel', {
+    extend: 'Ext.grid.Panel',
+
+    /**
+     * @cfg {Boolean} autoScroll
+     * 自动显示滚动条
+     */
+    autoScroll:true,
+
+    /**
+     * @cfg {Boolean} columnLines
+     * 显示列间隔线
+     */
+    columnLines: true,
+
+    /**
+     * @cfg {Boolean} forceFit
+     * 使列占满整个宽度
+     */
+    forceFit: true,
+
+    /**
+     * @cfg {Object} viewConfig
+     * 默认显示配置
+     */
+    viewConfig: {
+        /**
+         * @cfg {Boolean} enableTextSelection
+         * 允许表格内容复制
+         */
+        enableTextSelection: true,
+
+        /**
+         * @cfg {Boolean} loadMask
+         * 数据加载遮罩
+         */
+        loadMask: false,
+    },
+
+    /**
+     * @cfg {String} region
+     * 布局位置
+     */
+    region: 'center',
+
+    constructor: function(config) {
+        if (config.store && !config.bbar) {
+            var pbar = Ext.create('XHome.toolbar.Paging', {
+                store: config.store,
+            });
+            config.bbar = [pbar];
+        }
+        this.callParent([config]);
+    },
 });
 
 /**
@@ -440,7 +568,7 @@ Ext.define('XHome.Dashboard', {
              * 版权信息面板初始化参数，默认为空
              */
             copyrightConfig: {}
-        }
+        };
         Ext.apply(__config, config);
         var workspace = Ext.create(__config.workspaceClass, __config.workspaceConfig);
         var navigation = Ext.create(__config.navigationClass,
@@ -452,22 +580,303 @@ Ext.define('XHome.Dashboard', {
         ];
         this.callParent([config]);
 
-        // 找到指定的节点并显示
         var hash = window.location.hash;
+        var node = undefined;
         if (hash) {
+            // 找到指定的节点并显示
             hash = hash.substr(1);
             var ids = hash.split('_');
             var nid = ids[0];
-            var node = navigation.getRootNode().findChild('id', nid);
+            node = navigation.getRootNode().findChild('id', nid);
             for (var i = 1; i < ids.length && node; i++) {
                 nid = nid + '_' + ids[i];
                 node.expand();
                 node = node.findChild('id', nid);
             }
-            if (node) {
-                navigation.fireEvent('itemclick', this, node);
-                navigation.getSelectionModel().select(node);
+        } else {
+            // 选择第一个叶子节点显示
+            node = navigation.getRootNode();
+            while (node && !node.isLeaf()) {
+                node.expand();
+                node = node.getChildAt(0);
             }
         }
+        if (node) {
+            navigation.fireEvent('itemclick', this, node);
+            navigation.getSelectionModel().select(node);
+        }
     },
+});
+
+/**
+ * 消息提示
+ *
+ * {@link Ext.MessageBox}
+ */
+Ext.define('XHome.Msg', {
+    singleton: true,
+
+    /**
+     * 弹出提示框
+     *
+     * @param {String} msg
+     * 提示信息
+     * @param {Function} fn
+     * 回调函数
+     * @param {Object} scope
+     * 回调函数执行作用域
+     */
+    info: function(msg, fn, scope) {
+        Ext.MessageBox.show({
+            title: '提示',
+            icon:  Ext.MessageBox.INFO,
+            buttons: Ext.MessageBox.OK,
+            msg: msg,
+            fn: fn,
+            scope: scope,
+        });
+    },
+ 
+    /**
+     * 弹出警告提示框
+     *
+     * @param {String} msg
+     * 警告提示信息
+     * @param {Function} fn
+     * 回调函数
+     * @param {Object} scope
+     * 回调函数执行作用域
+     */
+    warn: function(msg, fn, scope) {
+        Ext.MessageBox.show({
+            title: '警告',
+            icon:  Ext.MessageBox.WARNING,
+            buttons: Ext.MessageBox.OK,
+            msg: msg,
+            fn: fn,
+            scope: scope,
+        });
+    },
+ 
+    /**
+     * 弹出错误提示框
+     *
+     * @param {String} msg
+     * 错误提示信息
+     * @param {Function} fn
+     * 回调函数
+     * @param {Object} scope
+     * 回调函数执行作用域
+     */
+    error: function(msg, fn, scope) {
+        Ext.MessageBox.show({
+            title: '错误',
+            icon:  Ext.MessageBox.ERROR,
+            buttons: Ext.MessageBox.OK,
+            msg: msg,
+            fn: fn,
+            scope: scope,
+        });
+    },
+ 
+    /**
+     * 进度条提示框
+     *
+     * @param {String} msg
+     * 提示信息
+     * @param {Function} fn
+     * 回调函数
+     * @param {String} progressText
+     * 进度条上显示的信息
+     * @param {Object} waitConfig
+     * A {@link Ext.ProgressBar.wait} config object
+     * @param {Object} scope
+     * 回调函数执行作用域
+     */
+    progress: function(msg, fn, progressText, waitConfig, scope) {
+        Ext.MessageBox.show({
+            title: '提示',
+            progress: true,
+            wait: true,
+            icon:  Ext.MessageBox.INFO,
+            buttons: Ext.MessageBox.CANCEL,
+            msg: msg,
+            fn: fn,
+            progressText: progressText,
+            waitConfig: waitConfig,
+            scope: scope,
+        });
+    },
+
+    /**
+     * 隐藏提示窗口
+     */
+    hide: function(animateTarget, callback, scope) {
+        Ext.MessageBox.hide(animateTarget, callback, scope);
+    },
+});
+
+/**
+ * JSON数据加载
+ *
+ * {@link Ext.data.JsonStore}
+ */
+Ext.define('XHome.data.JsonStore', {
+    extend: 'Ext.data.JsonStore',
+
+    /**
+     * @cfg {Boolean} autoLoad
+     * 自动加载数据
+     */
+    autoLoad: true,
+
+    /**
+     * @cfg {Boolean} wrapperBeforeload
+     * 允许包装beforeload事件
+     */
+    wrapperBeforeload: true,
+
+    /**
+     * @cfg {Boolean} wrapperBeforeload
+     * 允许包装load事件
+     */
+    wrapperLoad: true,
+
+    /**
+     * @cfg {Boolean} allowAbort
+     * 允许取消数据加载请求
+     */
+    allowAbort: true,
+
+    /**
+     * @cfg {String} url
+     * 数据加载连接，未配置proxy时有效
+     */
+    url: undefined,
+
+    constructor: function(config) {
+        config = Ext.apply({
+            wrapperBeforeload: true,
+            wrapperLoad: true,
+            allowAbort: true,
+            pageSize: 1,
+        }, config);
+
+        var listeners = Ext.apply({}, config.listeners);
+        if (config.wrapperBeforeload) {
+            var beforeload = listeners.beforeload;
+            listeners.beforeload = function(store, operation) {
+                // 数据加载前显示提示框
+                XHome.Msg.progress('正在加载数据……',
+                    function(buttonId, text, opt) {
+                        // 如果在数据加载过程中点击了取消按钮，则取消数据加载
+                        if (buttonId == 'cancel' && config.allowAbort) {
+                            var req, requests = Ext.Ajax.requests;
+                            for (id in requests) {
+                                req = requests[id];
+                                if (requests.hasOwnProperty(id)
+                                    && req.options == operation.request) {
+                                    Ext.Ajax.abort(req);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                );
+                if (beforeload) {
+                    beforeload(store, operation);
+                }
+            };
+        }
+
+        if (config.wrapperLoad) {
+            var load = listeners.load;
+            listeners.load = function(store, records, successful, eOpts) {
+                // 数据加载完成后隐藏提示框
+                Ext.MessageBox.hide();
+                if (!successful) {
+                    XHome.Msg.error(store.getProxy().getReader().rawData.message);
+                }
+                if (load) {
+                    load(store, records, successful, eOpts);
+                }
+            };
+        }
+        config.listeners = listeners;
+
+        if (!config.proxy && config.url) {
+            // 配置默认proxy
+            config.proxy = {
+                type: 'ajax',
+                url: config.url,
+                reader: {
+                    type: 'json',
+                    root: 'results',
+                    idProperty: 'id',
+                    totalProperty: 'total',
+                    messageProperty: 'message',
+                    successProperty: 'success',
+                }
+            };
+        }
+
+        this.callParent([config]);
+    },
+});
+
+/**
+ * 分页工具条
+ *
+ * {@link Ext.toolbar.Paging}
+ */
+Ext.define('XHome.toolbar.Paging', {
+    extend: 'Ext.toolbar.Paging',
+
+    /**
+     * @cfg {Boolean} border
+     * 无边框
+     */
+    border: false,
+
+    /**
+     * @cfg {Boolean} displayInfo
+     * 显示总条数提示信息
+     */
+    displayInfo: true,
+
+    padding: 0,
+    margin: 0,
+
+    /**
+     * @cfg {String} width
+     * 默认宽度为100%
+     */
+    width: '100%',
+
+    /**
+     * @cfg {Function} onPagingBlur
+     * 修改默认Blur事件,加载指定的分页
+     */
+    onPagingBlur: function(e) {
+        var inputItem = this.getInputItem(),
+            value = inputItem.getValue(),
+            store = this.store,
+            currentPage = store.currentPage;
+        if (!isNaN(value) && value > 0 && value != currentPage) {
+            var pageCount = Math.ceil(store.getTotalCount() / store.pageSize);
+            if (value <= pageCount) {
+                store.loadPage(value);
+            } else {
+                inputItem.setValue(currentPage);
+            }
+        } else {
+            inputItem.setValue(currentPage);
+        }
+    },
+
+    /**
+     * @cfg {Ext.AbstractPlugin[]/Ext.AbstractPlugin/Object[]/Object/Ext.enums.Plugin[]/Ext.enums.Plugin} plugins
+     * 扩展插件
+     */
+    plugins: [Ext.create('Ext.ux.PageSizeBar'), Ext.create('Ext.ux.ProgressBarPager')],
 });

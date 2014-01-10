@@ -86,7 +86,39 @@ Ext.define('XHome.Dashboard.Logo', {
      * @cfg {Number} height
      * Logo面板默认高度为80
      */
-    height: 80
+    height: 80,
+
+    layout: {
+        type: 'hbox',
+        pack: 'end',
+        align: 'bottom',
+    },
+
+    items: [{
+        xtype: 'combo',
+        fieldLabel: '主题:',
+        displayField: 'name',
+        valueField: 'value',
+        editable: false,
+        labelWidth: 30,
+        width: 110,
+        value: 'xlibs/ext/resources/css/ext-all.css',
+        store: Ext.create('Ext.data.ArrayStore', {
+            queryMode: 'local',
+            fields: ['name', 'value'],
+            data: [
+                ['Classic', 'xlibs/ext/resources/css/ext-all.css'],
+                ['Gray', 'xlibs/ext/resources/css/ext-all-gray.css'],
+                ['Access', 'xlibs/ext/resources/css/ext-all-access.css'],
+                ['Neptune', 'xlibs/ext/resources/css/ext-all-neptune.css']
+            ],
+        }),
+        listeners: {
+            change: function(combo, newValue, oldValue, eOpts) {
+                Ext.util.CSS.swapStyleSheet('theme', combo.getValue());
+            },
+        }
+    }]
 });
 
 /**

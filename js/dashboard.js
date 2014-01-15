@@ -425,11 +425,18 @@ Ext.define('XHome.Dashboard.SearchPanel', {
     },
 
     /**
+     * @cfg {String} defaultType
+     * 子元素默认类型
+     */
+    defaultType: 'textfield',
+
+    /**
      * @cfg {Object} defaults
      * 所有子元素默认样式
      */
     defaults: {
         margin: 'auto',
+        labelWidth: 30,
     },
 
     /**
@@ -457,7 +464,28 @@ Ext.define('XHome.Dashboard.SearchPanel', {
      * 获取查询条件
      */
     getSearchCondition: function() {
-        return {};
+        var form = this.getForm();
+        return form && form.isValid() ? form.getValues() : undefined;
+    },
+
+    /**
+     * 重置构造函数，在面板最后添加查询按钮
+     */
+    constructor: function(config) {
+        if (config && config.items) {
+            config.items.push({
+                xtype: 'button',
+                text: '查询',
+                x: 10,
+                iconAlign: 'left',
+                iconCls: 'icon_query',
+                handler: function(button, e) {
+                    var spanel = button.findParentByType('xdspanel');
+                    spanel.doSearch();
+                },
+            });
+        }
+        this.callParent([config]);
     },
 });
 
@@ -507,6 +535,18 @@ Ext.define('XHome.Dashboard.EditorGridPanel', {
     },
 
     /**
+     * @cfg {Object} selModel
+     * 表格复选框
+     */
+    selModel: Ext.create('Ext.selection.CheckboxModel', {
+        /**
+         * @cfg {Boolean} checkOnly
+         * 仅点击复选框时才有效
+         */
+        checkOnly:true,
+    }),
+
+    /**
      * @cfg {String} region
      * 布局位置
      */
@@ -527,6 +567,10 @@ Ext.define('XHome.Dashboard.EditorGridPanel', {
                         var spanel = parent.child('xdspanel');
                         if (spanel) {
                             var params = spanel.getSearchCondition();
+                            if (params == undefined) {
+                                Ext.MessageBox.hide();
+                                return false;
+                            }
                             if (!operation.params) {
                                 operation.params = params;
                             } else {

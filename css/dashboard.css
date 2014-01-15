@@ -1,0 +1,26 @@
+/**
+ * Author:   jhat
+ * Date:     2014-01-10
+ * Email:    cpf624@126.com
+ * Home:     http://pfchen.org
+ * Describe: 
+ */
+
+.icon_add {
+    background-image: url(../images/dashboard/add.png);
+}
+.icon_edit {
+    background-image: url(../images/dashboard/edit.png);
+}
+.icon_delete {
+    background-image: url(../images/dashboard/delete.png);
+}
+.icon_query {
+    background-image:url(../images/dashboard/query.png);
+}
+.icon_up {
+    background-image: url(../images/dashboard/up.png);
+}
+.icon_down {
+    background-image: url(../images/dashboard/down.png);
+}

@@ -387,8 +387,6 @@ Ext.define('XHome.Dashboard.SearchPanel', {
     extend: 'Ext.form.Panel',
     alias: 'widget.xdspanel',
 
-    formBind: true,
-
     /**
      * @cfg {Boolean} frame
      * 背景样式
@@ -583,6 +581,183 @@ Ext.define('XHome.Dashboard.EditorGridPanel', {
         }
         this.callParent([config]);
     },
+});
+
+/**
+ * 弹框表单
+ *
+ * {@link Ext.window.Window}
+ */
+Ext.define('XHome.Dashboard.FormWindow', {
+    extend: 'Ext.window.Window',
+    alias: 'widget.xdformwin',
+
+    /**
+     * @cfg {Boolean} modal
+     * 弹窗遮罩
+     */
+    modal: true,
+
+    /**
+     * @cfg {Boolean} autoScroll
+     * 自动显示滚动条
+     */
+    autoScroll: true,
+
+    /**
+     * @cfg {Boolean} border
+     * 默认无边框
+     */
+    border: false,
+
+    /**
+     * @cfg {String} buttonAlign
+     * 弹窗中的按钮居中显示
+     */
+    buttonAlign:'center',
+
+    /**
+     * @cfg {Object} hiddenItems
+     * form表单中的隐藏字段
+     */
+    hiddenParams: {},
+
+    /**
+     * @cfg {Function} showResult
+     * 显示操作执行结果
+     * @param {Object} result 操作执行结果
+     */
+    showResult: function(result) {
+        if (result.success) {
+            this.showSuccess(result.message);
+        } else {
+            this.showError(result.message);
+        }
+    },
+
+    /**
+     * @cfg {Function} showError
+     * 显示操作失败错误提示信息
+     * @param message {String} 提示信息
+     */
+    showError: function(message) {
+        Ext.MessageBox.hide();
+        var error = this.getComponent('error');
+        error.setText(message);
+        error.show();
+    },
+
+    /**
+     * @cfg {Function} showSuccess
+     * 显示操作成功提示信息
+     * @param message {String} 提示信息
+     */
+    showSuccess: function(message) {
+        this.hide();
+        XHome.Msg.info(message);
+    },
+
+    /**
+     * @cfg {Function} success
+     * 操作成功后回调
+     * @param {Object} result 操作执行结果
+     */
+    success: function(result) {},
+
+    /**
+     * @cfg {Function} error
+     * 操作失败后回调
+     * @param {Object} result 操作执行结果
+     */
+    error: function(result) {},
+
+    /**
+     * @cfg {Function} reset
+     * 重置表单
+     */
+    reset: function() {
+        this.getComponent('form').getForm().reset();
+        this.getComponent('error').hide();
+    },
+
+    constructor: function(config) {
+        config = Ext.apply({}, config);
+
+        if (!config.buttons) {
+            // 使用默认的窗口按钮
+            config.buttons = [{
+                text: '提交',
+                handler: function(button, e) {
+                    var win = button.up('window');
+                    var form = win.getComponent('form');
+                    if (form.isValid()) {
+                        form.submit({
+                            success: function(form, action) {
+                                win.showResult(action.result);
+                                win.success(action.result);
+                            },
+                            failure: function(form, action) {
+                                win.showResult(action.result);
+                                win.error(action.result);
+                            }
+                        });
+                    }
+                },
+            }, {
+                text: '取消',
+                handler: function(button, e) {
+                    var win = button.up('window');
+                    win.close();
+                },
+            }];
+        }
+
+        var items = config.items, hiddenParams = config.hiddenParams,
+            hidden = false;
+        // 将隐藏字段加入FormPanel
+        if (items && hiddenParams) {
+            for (param in hiddenParams) {
+                hidden = true;
+                for (var i = 0; i < items.length; i++) {
+                    if (param == items[i].name) {
+                        hidden = false;
+                        break;
+                    }
+                }
+                if (hidden) {
+                    items.push({
+                        xtype: 'hidden',
+                        name: param,
+                        itemId: param,
+                        value: hiddenParams[param],
+                    });
+                }
+            }
+        }
+        // 将items全部放在一个FormPanel中
+        config.items = [{
+            xtype: 'form',
+            itemId: 'form',
+            url: config.url,
+            border: false,
+            frame: true,
+            defaults: {
+                xtype: 'textfield',
+                labelWidth: 30,
+                labelAlign: 'center',
+                width: '100%',
+            },
+            items: items,
+        }, {
+            xtype: 'label',
+            itemId: 'error',
+            style: 'color: red; padding: 0px 4px 0px 4px;',
+            hidden: true,
+        }];
+
+        this.callParent([config]);
+    },
+
 });
 
 /**
@@ -819,7 +994,28 @@ Ext.define('XHome.Msg', {
             scope: scope,
         });
     },
- 
+
+    /**
+     * 确认操作提示框
+     *
+     * @param {String} msg
+     * 错误提示信息
+     * @param {Function} fn
+     * 回调函数
+     * @param {Object} scope
+     * 回调函数执行作用域
+     */
+    confirm: function(msg, fn, scope) {
+        Ext.MessageBox.show({
+            title: '提示',
+            icon: Ext.MessageBox.QUESTION,
+            buttons: Ext.MessageBox.YESNO,
+            msg: msg,
+            fn: fn,
+            scope: scope,
+        });
+    },
+
     /**
      * 进度条提示框
      *
@@ -907,7 +1103,7 @@ Ext.define('XHome.data.JsonStore', {
             var beforeload = listeners.beforeload;
             listeners.beforeload = function(store, operation) {
                 // 数据加载前显示提示框
-                XHome.Msg.progress('正在加载数据……',
+                XHome.Msg.progress('正在加载数据......',
                     function(buttonId, text, opt) {
                         // 如果在数据加载过程中点击了取消按钮，则取消数据加载
                         if (buttonId == 'cancel' && config.allowAbort) {
@@ -1019,4 +1215,214 @@ Ext.define('XHome.toolbar.Paging', {
      * 扩展插件
      */
     plugins: [Ext.create('Ext.ux.PageSizeBar'), Ext.create('Ext.ux.ProgressBarPager')],
+});
+
+/**
+ * 工具方法
+ */
+Ext.define('XHome.utils', {
+    singleton: true,
+
+    /**
+     * 将数据对象转换为form表单格式的数据
+     *
+     * @param {Object} data
+     * 待转换的数据对象
+     * @param {String} prefix
+     * 转换后的数据前缀
+     * @param {String} dateFormat
+     * 时间类型数据格式化, {@link Ext.Date.format}
+     *
+     * @return {Object} 返回key-value形式的数据
+     */
+    formEncode: function(data, prefix, dateFormat) {
+        if (data == null || data == undefined) {
+            return {};
+        }
+        if (prefix == null || prefix == undefined) {
+            prefix = '';
+        }
+        if (dateFormat == null || dateFormat == undefined) {
+            dateFormat = 'Y-m-d H:i:s';
+        }
+
+        /**
+         * 时间类型对象转换
+         *
+         * @param {Date} d
+         * 待转换的时间对象
+         *
+         * @return {String} 返回格式化后的时间对象
+         */
+        var encodeDate = function(d) {
+            return Ext.Date.format(d, dateFormat);
+        };
+
+        /**
+         * 数组类型对象转换
+         *
+         * @param {Array} a
+         * 待转换的数组对象
+         * @param {String} p
+         * 转换后的数据前缀
+         *
+         * @return {Object} 返回key-value形式的数据
+         */
+        var encodeArray = function(a, p) {
+            var r = {};
+            for (var i = 0; i < a.length; i++) {
+                var t = {}, v = a[i];
+                if (v instanceof Function) {
+                    continue;
+                } else if (v instanceof Date) {
+                    r[p + '[' + i + ']'] = encodeDate(v);
+                } else if (v instanceof Array) {
+                    t = encodeArray(v, '[' + i + ']');
+                } else if (v instanceof Object) {
+                    t = encodeObject(v, '[' + i + ']');
+                } else {
+                    r[p + '[' + i + ']'] = a[i];
+                }
+                for (tk in t) {
+                    r[p + tk] = t[tk];
+                }
+            }
+            return r;
+        };
+
+        /**
+         * 对象类型对象转换
+         *
+         * @param {Object} o
+         * 待转换的数据对象
+         * @param {String} p
+         * 转换后的数据前缀
+         *
+         * @return {Object} 返回key-value形式的数据
+         */
+        var encodeObject = function(o, p) {
+            var r = {};
+            for (k in o) {
+                var t = {}, v = o[k];
+                if (v instanceof Function) {
+                    continue;
+                } else if (v instanceof Date) {
+                    r[p + '.' + k] = encodeDate(v);
+                } else if (v instanceof Array) {
+                    t = encodeArray(v, k);
+                } else if (v instanceof Object) {
+                    t = encodeObject(v, k);
+                } else {
+                    r[p + '.' + k] = v;
+                }
+                for (tk in t) {
+                    r[p + '.' + tk] = t[tk];
+                }
+            }
+            return r;
+        };
+
+        var result = {};
+        if (data instanceof Function) {
+            return {};
+        } else if (data instanceof Date) {
+            result[prefix] = encodeDate(data);
+        } else if (data instanceof Array) {
+            return encodeArray(data, prefix);
+        } else if (data instanceof Object) {
+            return encodeObject(data, prefix);
+        } else {
+            result[prefix] = data;
+        }
+        return result;
+    },
+
+    /**
+     * Ajax 请求工具方法
+     *
+     * @param {Object} config
+     * 请求配置项
+     * confirmMsg 确认操作提示，如果为空不会有确实提示
+     * progressMsg 正在进行操作提示，如果为空，不会有操作提示
+     * url 请求地址
+     * method 请求类型，默认为POST
+     * params 请求参数
+     * success 执行成功后的回调函数
+     * error 执行失败后的回调函数
+     * failure 请求失败后的回调函数
+     */
+    request: function(config) {
+        if (!config.method) {
+            config.method = 'POST';
+        }
+        var doRequest = function() {
+            var request = Ext.Ajax.request({
+                url: config.url,
+                method: config.method,
+                params: config.params,
+                success: function(response, options) {
+                    var result = Ext.JSON.decode(response.responseText);
+                    XHome.Msg.hide();
+                    if (result.success) {
+                        XHome.Msg.info(result.message);
+                        if (config.success instanceof Function) {
+                            config.success(result, response, options);
+                        }
+                    } else {
+                        XHome.Msg.error(result.message);
+                        if (config.error instanceof Function) {
+                            config.error(result, response, options);
+                        }
+                    }
+                },
+                failure: function(response, options) {
+                    XHome.Msg.hide();
+                    if (!response.aborted) {
+                        XHome.Msg.info('请求失败');
+                    }
+                    if (config.failure instanceof Function) {
+                        config.failure(response, options);
+                    }
+                },
+            });
+            if (config.progressMsg) {
+                XHome.Msg.progress(config.progressMsg, function(btn) {
+                    if (btn == 'cancel') {
+                        Ext.Ajax.abort(request);
+                    }
+                });
+            }
+        };
+        if (config.confirmMsg) {
+            XHome.Msg.confirm(config.confirmMsg, function(btn) {
+                if (btn == 'yes') {
+                    doRequest();
+                }
+            });
+        } else {
+            doRequest();
+        }
+    },
+
+    /**
+     * 可编辑表格右键与双击事件绑定
+     *
+     * @param {Object} grid
+     * 可编辑表格对象, {@link XHome.Dashboard.EditorGridPanel}
+     * @param {Object} menu
+     * 右键菜单，{@link Ext.menu.Menu}
+     * @param {Function} dblclickCallback
+     * 表格双击事件回调函数
+     */
+    bindGridClick: function(grid, menu, dblclickCallback) {
+        grid.on('itemcontextmenu', function(gridView, record, item, index, e, eOpts ) {
+            e.preventDefault();
+            grid.getSelectionModel().select(record);
+            menu.showAt(e.getXY());
+        });
+        grid.on('itemdblclick', function(gridView, record, item, index, e, eOpts ) {
+            grid.getSelectionModel().select(record);
+            dblclickCallback(record, item, index, e, eOpts);
+        });
+    },
 });

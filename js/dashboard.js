@@ -26,26 +26,28 @@
  *         logoConfig: {
  *             html: '<h1>XHome Dashboard</h1>',
  *         },
+ *         // 各个节点的id不能为空，子节点的id必须以父节点的id开头，并用-分隔，
+ *         // 故节点id不应出现-
  *         navigationConfig: { // 导航菜单配置
  *             title: 'Navigation',
  *             root: {
  *                 children: [{
- *                     id: 'msys',
+ *                     id: 'xauth_system',
  *                     text: '系统配置',
  *                     leaf: true,
  *                     iconCls: 'icon-test', // 重置默认图标
  *                     showScript: 'xauth/js/user/user.js', // 显示面板所需加载的javascript
  *                     showClass: 'Ext.panel.Panel', // 显示面板类
  *                     showConfig: { // 显示面板配置
- *                         id: 'sys_config',
+ *                         id: 'xauth_system-config',
  *                         html: 'System Config',
  *                     }
  *                 }, {
- *                     id: 'mxauth',
+ *                     id: 'xauth_manage',
  *                     text: '认证管理',
  *                     leaf: false,
  *                     children: [{
- *                         id: 'mxauth_role',
+ *                         id: 'xauth_manage-role',
  *                         text: '角色管理',
  *                         leaf: true,
  *                         showClass: 'Ext.panel.Panel',
@@ -434,7 +436,7 @@ Ext.define('XHome.Dashboard.SearchPanel', {
      */
     defaults: {
         margin: 'auto',
-        labelWidth: 30,
+        labelWidth: 40,
     },
 
     /**
@@ -743,9 +745,10 @@ Ext.define('XHome.Dashboard.FormWindow', {
             frame: true,
             defaults: {
                 xtype: 'textfield',
-                labelWidth: 30,
+                labelWidth: 40,
                 labelAlign: 'center',
                 width: '100%',
+                anchor:'100%', 
             },
             items: items,
         }, {
@@ -900,12 +903,13 @@ Ext.define('XHome.Dashboard', {
         var node = undefined;
         if (hash) {
             // 找到指定的节点并显示
+            // 按-为分隔符查找子节点
             hash = hash.substr(1);
-            var ids = hash.split('_');
+            var ids = hash.split('-');
             var nid = ids[0];
             node = navigation.getRootNode().findChild('id', nid);
             for (var i = 1; i < ids.length && node; i++) {
-                nid = nid + '_' + ids[i];
+                nid = nid + '-' + ids[i];
                 node.expand();
                 node = node.findChild('id', nid);
             }

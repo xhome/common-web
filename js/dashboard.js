@@ -389,6 +389,8 @@ Ext.define('XHome.Dashboard.SearchPanel', {
     extend: 'Ext.form.Panel',
     alias: 'widget.xdspanel',
 
+    itemId: 'xdspanel',
+
     /**
      * @cfg {Boolean} frame
      * 背景样式
@@ -498,6 +500,8 @@ Ext.define('XHome.Dashboard.EditorGridPanel', {
     extend: 'Ext.grid.Panel',
     alias: 'widget.xdgrid',
 
+    itemId: 'xdgrid',
+
     /**
      * @cfg {Boolean} autoScroll
      * 自动显示滚动条
@@ -535,18 +539,6 @@ Ext.define('XHome.Dashboard.EditorGridPanel', {
     },
 
     /**
-     * @cfg {Object} selModel
-     * 表格复选框
-     */
-    selModel: Ext.create('Ext.selection.CheckboxModel', {
-        /**
-         * @cfg {Boolean} checkOnly
-         * 仅点击复选框时才有效
-         */
-        checkOnly:true,
-    }),
-
-    /**
      * @cfg {String} region
      * 布局位置
      */
@@ -581,6 +573,15 @@ Ext.define('XHome.Dashboard.EditorGridPanel', {
                 },
             });
         }
+
+        // 添加复选框列
+        if (!config.selModel) {
+            this.selModel = Ext.create('Ext.selection.CheckboxModel', {
+                // 仅点击复选框时才有效
+                checkOnly:true,
+            });
+        }
+ 
         this.callParent([config]);
     },
 });

@@ -544,6 +544,12 @@ Ext.define('XHome.Dashboard.EditorGridPanel', {
      */
     region: 'center',
 
+    /**
+     * @cfg {Boolean} forceFit
+     * 使用默认的复选框列（默认使用)
+     */
+    autoSelModel: undefined,
+
     constructor: function(config) {
         if (config.store && !config.bbar) {
             var pbar = Ext.create('XHome.toolbar.Paging', {
@@ -575,7 +581,8 @@ Ext.define('XHome.Dashboard.EditorGridPanel', {
         }
 
         // 添加复选框列
-        if (!config.selModel) {
+        if (!config.selModel && (config.autoSelModel == undefined
+                || config.autoSelModel)) {
             this.selModel = Ext.create('Ext.selection.CheckboxModel', {
                 // 仅点击复选框时才有效
                 checkOnly:true,
@@ -914,18 +921,17 @@ Ext.define('XHome.Dashboard', {
                 node.expand();
                 node = node.findChild('id', nid);
             }
-        } else {
-            // 选择第一个叶子节点显示
+        }
+        // 如果未找到指定的节点，则选择第一个叶子节点显示
+        if (!node || !node.isLeaf()) {
             node = navigation.getRootNode();
             while (node && !node.isLeaf()) {
                 node.expand();
                 node = node.getChildAt(0);
             }
         }
-        if (node) {
-            navigation.fireEvent('itemclick', this, node);
-            navigation.getSelectionModel().select(node);
-        }
+        navigation.fireEvent('itemclick', this, node);
+        navigation.getSelectionModel().select(node);
     },
 });
 

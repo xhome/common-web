@@ -545,17 +545,27 @@ Ext.define('XHome.Dashboard.EditorGridPanel', {
     region: 'center',
 
     /**
-     * @cfg {Boolean} forceFit
+     * @cfg {Boolean} autoSelModel
      * 使用默认的复选框列（默认使用)
      */
     autoSelModel: undefined,
 
+    /**
+     * @cfg {Boolean} autoPagingBar
+     * 使用默认的分页工具条（默认使用)
+     */
+    autoPagingBar: undefined,
+
     constructor: function(config) {
-        if (config.store && !config.bbar) {
-            var pbar = Ext.create('XHome.toolbar.Paging', {
-                store: config.store,
-            });
-            config.bbar = [pbar];
+        if (config.store) {
+            // 分页工具条 
+            if (!config.bbar && (config.autoPagingBar == undefined
+                || config.autoPagingBar)) {
+                var pbar = Ext.create('XHome.toolbar.Paging', {
+                    store: config.store,
+                });
+                config.bbar = [pbar];
+            }
 
             var grid = this;
             config.store.on({

@@ -1,0 +1,12 @@
+syntax:glob
+
+.classpath
+.mymetadata
+.project
+.settings
+.myeclipse
+.*.swp
+.DS_Store
+target
+
+syntax:regexp

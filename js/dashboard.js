@@ -111,8 +111,8 @@ Ext.define('XHome.Dashboard.Logo', {
             data: [
                 ['Classic', 'xlibs/ext/resources/css/ext-all.css'],
                 ['Gray', 'xlibs/ext/resources/css/ext-all-gray.css'],
-                ['Access', 'xlibs/ext/resources/css/ext-all-access.css'],
-                ['Neptune', 'xlibs/ext/resources/css/ext-all-neptune.css']
+                // ['Access', 'xlibs/ext/resources/css/ext-all-access.css'],
+                // ['Neptune', 'xlibs/ext/resources/css/ext-all-neptune.css']
             ],
         }),
         listeners: {
@@ -842,9 +842,9 @@ Ext.define('XHome.Dashboard.Copyright', {
 
     /**
      * @cfg {String} html
-     * 版权信息面板默认显示内容为： ©2009-2013 Xhome Studio
+     * 版权信息面板默认显示内容为： ©2009-2014 XHome Studio
      */
-    html: '©2009-2013 <a href="http://www.xhomestudio.org" target="__blank">Xhome Studio</a>'
+    html: '©2009-2014 <a href="http://www.xhomestudio.org" target="__blank">XHome Studio</a>'
 });
 
 /**

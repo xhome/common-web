@@ -1447,3 +1447,25 @@ Ext.define('XHome.utils', {
         });
     },
 });
+
+/**
+ * 开关下拉选项输入框
+ *
+ * {@link Ext.form.field.ComboBox}
+ */
+Ext.define('XHome.Combo.Switch', {
+    extend: 'Ext.form.field.ComboBox',
+    displayField: 'name',
+    valueField: 'value',
+    editable: false,
+    labelWidth: 40,
+    labelAlign: 'center',
+    store: Ext.create('Ext.data.ArrayStore', {
+        queryMode: 'local',
+        fields: ['name', 'value'],
+        data: [
+            ['关闭', '0'],
+            ['开启', '1'],
+        ],
+    }),
+});
